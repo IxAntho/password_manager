@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox as msb
 from random import randint, choice, shuffle
 import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
@@ -32,20 +33,57 @@ def save():
     website = website_entry.get()
     email = user_entry.get()
     password = password_entry.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password
+        }
+    }
 
     if len(website) == 0 or len(email) == 0 or len(password) == 0:
         msb.showerror(title="Oops", message="Please don't leave any fields empty!")
         return
     else:
-        is_ok = msb.askyesnocancel(title=website,
-                                   message=f"These are the details entered: \nEmail: {email} \nPassword: {password} \nIs it ok to save?")
+        try:
+            with open("data.json", "r") as data_file:
+                # Reading old data
+                data = json.load(data_file)
+                print(data)
 
-        if is_ok:
-            with open("data.txt", "a") as data:
-                data.write(f"{website} | {email} | {password}\n")
+        except FileNotFoundError:
+            with open("data.json", "w") as data_file:
+                json.dump(new_data, data_file, indent=4)
 
+        else:
+            # updating new data
+            data.update(new_data)
+            with open("data.json", "w") as data_file:
+                # saving update data
+                json.dump(data, data_file, indent=4)
+
+        finally:
+            # Getting fields empty
             website_entry.delete(0, END)
             password_entry.delete(0, END)
+
+
+# -------------------------- FIND PASSWORD ----------------------------- #
+def find_password():
+    website = website_entry.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        msb.showerror(title="Oops", message="No data file found!")
+    else:
+        for dic in data.keys():
+            if website == dic:
+                email = data[website]["email"]
+                password = data[website]["password"]
+                msb.showinfo(title=f"{website}", message=f"Website: {website}\n Email: {email}\nPassword: {password}")
+                return
+            else:
+                msb.showerror(title="Oops", message="No details for the website exists!")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -62,9 +100,11 @@ canvas.grid(column=1, row=0)
 # Row 1
 website_label = Label(text="Website:")
 website_label.grid(column=0, row=1)
-website_entry = Entry(width=37)
-website_entry.grid(column=1, row=1, columnspan=2)
+website_entry = Entry(width=21)
+website_entry.grid(column=1, row=1)
 website_entry.focus()
+search_button = Button(text="Search", width=12, command=find_password)
+search_button.grid(column=2, row=1)
 
 # Row 2
 user_label = Label(text="Email/Username:")
